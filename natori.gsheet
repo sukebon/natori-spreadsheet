@@ -1,0 +1,127 @@
+function conbineName(i) {
+  let spreadsheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("base");
+
+  // 役職
+  const positionNameCell = spreadsheet.getRange(i, 1);
+  const positionNameValue = positionNameCell.getValue();
+  let positionNameLength = positionNameValue.toString().length;
+  const positionNameStyle = SpreadsheetApp.newTextStyle().setFontSize(30).build();
+
+  // ラストネーム
+  const lastNameCell = spreadsheet.getRange(i, 2);
+  const lastNameValue = lastNameCell.getValue();
+  let lastNameLength = lastNameValue.toString().length;
+  const lastNameStyle = SpreadsheetApp.newTextStyle().setFontSize(60).build();
+
+  // ファーストネーム
+  const firstNameCell = spreadsheet.getRange(i, 3);
+  let firstNameValue = firstNameCell.getValue().toString();
+  let firstNameLength = firstNameValue.toString().length;
+  const firstNameStyle = SpreadsheetApp.newTextStyle().setFontSize(20).build();
+
+  let space = 1;
+  let line = 1;
+
+  // 役職なし　名前なし
+  if (positionNameLength === 0 && firstNameLength === 0) {
+    const richText = SpreadsheetApp.newRichTextValue()
+      .setText(lastNameValue)
+      .setTextStyle(0, lastNameLength, lastNameStyle)
+      .build();
+    spreadsheet.getRange(i, 4).setRichTextValue(richText);
+    return;
+  }
+
+  // 役職なし　名前あり
+  if (positionNameLength === 0 && firstNameLength > 0) {
+    firstNameLength = 1;
+    firstNameValue = firstNameValue.slice(0, 1);
+    const richText = SpreadsheetApp.newRichTextValue()
+      .setText(lastNameValue + '　' + firstNameValue)
+      .setTextStyle(0, lastNameLength + space, lastNameStyle)
+      .setTextStyle(lastNameLength + space, lastNameLength + space + firstNameLength, firstNameStyle)
+      .build();
+    spreadsheet.getRange(i, 4).setRichTextValue(richText);
+    return;
+  }
+
+  // 役職あり　名前なし
+  if (positionNameLength > 0 && firstNameLength === 0) {
+    const richText = SpreadsheetApp.newRichTextValue()
+      .setText(positionNameValue + "\n" + lastNameValue)
+      .setTextStyle(0, positionNameLength + line, positionNameStyle)
+      .setTextStyle(positionNameLength + line, positionNameLength + line + lastNameLength, lastNameStyle)
+      .build();
+    spreadsheet.getRange(i, 4).setRichTextValue(richText);
+    return;
+  }
+  // 役職あり　名前あり
+  if (positionNameLength > 0 && firstNameLength > 0) {
+    firstNameLength = 1;
+    firstNameValue = firstNameValue.slice(0, 1);
+    const richText = SpreadsheetApp.newRichTextValue()
+      .setText(positionNameValue + '\n' + lastNameValue + '　' + firstNameValue)
+      .setTextStyle(0, positionNameLength + line, positionNameStyle)
+      .setTextStyle(positionNameLength + line, positionNameLength + line + lastNameLength + space, lastNameStyle)
+      .setTextStyle(positionNameLength + line + lastNameLength + space, positionNameLength + line + lastNameLength + space + firstNameLength, firstNameStyle)
+      .build();
+    spreadsheet.getRange(i, 4).setRichTextValue(richText);
+    return;
+  }
+
+}
+
+
+function createResultSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const resultSheet = ss.getSheetByName("result");
+  if (resultSheet) {
+    ss.deleteSheet(resultSheet);
+  }
+  const newSheet = ss.insertSheet();
+  newSheet.setName("result");
+}
+
+function prettierWidthHeight(sheet, rows, row, column) {
+  const width = 500;
+  const height = 200;
+  sheet.setRowHeights(row, rows, height);
+  sheet.setColumnWidth(column, width);
+}
+
+function natori() {
+  createResultSheet();
+  const baseSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("base");
+  const resultSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("result");
+  baseSheet.getRange("A1").setValue("役職名");
+  baseSheet.getRange("B1").setValue("姓");
+  baseSheet.getRange("C1").setValue("名");
+  baseSheet.getRange("D1").setValue("結果");
+  baseSheet.getRange("A1:D1").setHorizontalAlignment("center").setBackgroundRGB(200, 200, 200);
+
+  const rows = baseSheet.getRange(baseSheet.getMaxRows(), 2).getNextDataCell(SpreadsheetApp.Direction.UP).getRow();
+  baseSheet.getRange(2, 1, rows, 4).setVerticalAlignment("middle").setHorizontalAlignment('center').setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
+
+  prettierWidthHeight(baseSheet, rows, 2, 4);
+  prettierWidthHeight(resultSheet, rows, 1, 1);
+
+  for (let i = 2; i <= rows; i++) {
+    conbineName(i);
+  }
+  const copyRange = baseSheet.getRange(2, 4, rows, 1);
+  const pasteRange = resultSheet.getRange("A1");
+  copyRange.copyTo(pasteRange);
+
+}
+
+function deleteNatori() {
+  const rows = 500;
+  const width = 200;
+  const height = 50;
+  const sheet = SpreadsheetApp.getActiveSheet();
+  sheet.getRange(2, 1, rows, 4).clearContent();
+  sheet.setColumnWidths(1, 4, width);
+  sheet.setRowHeights(2, rows, height);
+}
+
+
