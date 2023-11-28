@@ -1,49 +1,121 @@
-function conbineName(i) {
-  let spreadsheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("base");
+const ss = SpreadsheetApp.getActiveSpreadsheet()
+const baseSheet = ss.getSheetByName("base")
+const resultSheet = ss.getSheetByName("result")
 
+let positionNameCell
+let positionNameValue
+let positionNameLength
+let positionNameStyle
+
+// ラストネーム
+let lastNameCell
+let lastNameValue
+let lastNameLength
+let lastNameStyle
+
+// ファーストネーム
+let firstNameCell
+let firstNameValue
+let firstNameLength
+let firstNameStyle
+
+const space = 1
+const line = 1
+
+function initSheet() {
+  createResultSheet()
+
+  baseSheet.getRange("A1").setValue("役職名")
+  baseSheet.getRange("B1").setValue("姓")
+  baseSheet.getRange("C1").setValue("名")
+  baseSheet.getRange("D1").setValue("結果")
+  baseSheet.getRange("A1:D1").setHorizontalAlignment("center").setBackgroundRGB(200, 200, 200)
+
+  const rows = baseSheet.getRange(baseSheet.getMaxRows(), 2).getNextDataCell(SpreadsheetApp.Direction.UP).getRow()
+  baseSheet.getRange(2, 1, rows, 4).setVerticalAlignment("middle").setHorizontalAlignment('center').setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP)
+
+  const resultSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("result")
+
+  return {
+    rows,
+    resultSheet
+  }
+}
+
+function createResultSheet() {
+  if (resultSheet) {
+    ss.deleteSheet(resultSheet)
+  }
+  const newSheet = ss.insertSheet()
+  newSheet.setName("result")
+}
+
+function prettierWidthHeight(sheet, rows, row, column, width, height) {
+  sheet.setRowHeights(row, rows, height)
+  sheet.setColumnWidth(column, width)
+}
+
+function conbineKubishitaName(row) {
   // 役職
-  const positionNameCell = spreadsheet.getRange(i, 1);
-  const positionNameValue = positionNameCell.getValue();
-  let positionNameLength = positionNameValue.toString().length;
-  const positionNameStyle = SpreadsheetApp.newTextStyle().setFontSize(30).build();
+  positionNameCell = baseSheet.getRange(row, 1)
+  positionNameValue = positionNameCell.getValue()
+  positionNameLength = positionNameValue.toString().length;
+  positionNameStyle = SpreadsheetApp.newTextStyle().setFontSize(30).build()
 
   // ラストネーム
-  const lastNameCell = spreadsheet.getRange(i, 2);
-  const lastNameValue = lastNameCell.getValue();
-  let lastNameLength = lastNameValue.toString().length;
-  const lastNameStyle = SpreadsheetApp.newTextStyle().setFontSize(60).build();
+  lastNameCell = baseSheet.getRange(row, 2)
+  lastNameValue = lastNameCell.getValue();
+  lastNameLength = lastNameValue.toString().length;
+  lastNameStyle = SpreadsheetApp.newTextStyle().setFontSize(82).build()
 
   // ファーストネーム
-  const firstNameCell = spreadsheet.getRange(i, 3);
-  let firstNameValue = firstNameCell.getValue().toString();
-  let firstNameLength = firstNameValue.toString().length;
-  const firstNameStyle = SpreadsheetApp.newTextStyle().setFontSize(20).build();
-
-  let space = 1;
-  let line = 1;
+  firstNameCell = baseSheet.getRange(row, 3);
+  firstNameValue = firstNameCell.getValue().toString();
+  firstNameLength = firstNameValue.toString().length;
+  firstNameStyle = SpreadsheetApp.newTextStyle().setFontSize(30).build()
 
   // 役職なし　名前なし
   if (positionNameLength === 0 && firstNameLength === 0) {
+
+    // 姓が2文字の場合
+    changeLastNameStyle(2, 82)
+
+    // 姓が3文字の場合
+    changeLastNameStyle(3, 70)
+
     const richText = SpreadsheetApp.newRichTextValue()
       .setText(lastNameValue)
       .setTextStyle(0, lastNameLength, lastNameStyle)
-      .build();
-    spreadsheet.getRange(i, 4).setRichTextValue(richText);
-    return;
+      .build()
+    baseSheet.getRange(row, 4).setRichTextValue(richText)
+    return
   }
 
   // 役職なし　名前あり
   if (positionNameLength === 0 && firstNameLength > 0) {
-    firstNameLength = 1;
-    firstNameValue = firstNameValue.slice(0, 1);
+
+    // 姓が2文字の場合
+    changeLastNameStyle(2, 70)
+
+    // 姓が3文字の場合
+    changeLastNameStyle(3, 60)
+
+    firstNameLength = 1
+    firstNameValue = firstNameValue.slice(0, 1)
     const richText = SpreadsheetApp.newRichTextValue()
-      .setText(lastNameValue + '　' + firstNameValue)
-      .setTextStyle(0, lastNameLength + space, lastNameStyle)
-      .setTextStyle(lastNameLength + space, lastNameLength + space + firstNameLength, firstNameStyle)
-      .build();
-    spreadsheet.getRange(i, 4).setRichTextValue(richText);
-    return;
+      .setText(lastNameValue + firstNameValue)
+      .setTextStyle(0, lastNameLength, lastNameStyle)
+      .setTextStyle(lastNameLength, lastNameLength + firstNameLength, firstNameStyle)
+      .build()
+    baseSheet.getRange(row, 4).setRichTextValue(richText)
+    return
   }
+
+  // 姓が2文字の場合
+  changeLastNameStyle(2, 60)
+
+  // 姓が3文字の場合
+  changeLastNameStyle(3, 55)
 
   // 役職あり　名前なし
   if (positionNameLength > 0 && firstNameLength === 0) {
@@ -51,77 +123,150 @@ function conbineName(i) {
       .setText(positionNameValue + "\n" + lastNameValue)
       .setTextStyle(0, positionNameLength + line, positionNameStyle)
       .setTextStyle(positionNameLength + line, positionNameLength + line + lastNameLength, lastNameStyle)
-      .build();
-    spreadsheet.getRange(i, 4).setRichTextValue(richText);
-    return;
+      .build()
+    baseSheet.getRange(row, 4).setRichTextValue(richText)
+    return
   }
   // 役職あり　名前あり
   if (positionNameLength > 0 && firstNameLength > 0) {
-    firstNameLength = 1;
-    firstNameValue = firstNameValue.slice(0, 1);
+    firstNameLength = 1
+    firstNameValue = firstNameValue.slice(0, 1)
     const richText = SpreadsheetApp.newRichTextValue()
-      .setText(positionNameValue + '\n' + lastNameValue + '　' + firstNameValue)
+      .setText(positionNameValue + '\n' + lastNameValue + firstNameValue)
       .setTextStyle(0, positionNameLength + line, positionNameStyle)
-      .setTextStyle(positionNameLength + line, positionNameLength + line + lastNameLength + space, lastNameStyle)
-      .setTextStyle(positionNameLength + line + lastNameLength + space, positionNameLength + line + lastNameLength + space + firstNameLength, firstNameStyle)
-      .build();
-    spreadsheet.getRange(i, 4).setRichTextValue(richText);
-    return;
+      .setTextStyle(positionNameLength + line, positionNameLength + line + lastNameLength, lastNameStyle)
+      .setTextStyle(positionNameLength + line + lastNameLength, positionNameLength + line + lastNameLength + firstNameLength, firstNameStyle)
+      .build()
+    baseSheet.getRange(row, 4).setRichTextValue(richText)
+    return
   }
-
 }
 
+function conbineHidarimuneName(row) {
+  // 役職
+  positionNameCell = baseSheet.getRange(row, 1)
+  positionNameValue = positionNameCell.getValue()
+  positionNameLength = positionNameValue.toString().length;
+  positionNameStyle = SpreadsheetApp.newTextStyle().setFontSize(24).build()
 
-function createResultSheet() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const resultSheet = ss.getSheetByName("result");
-  if (resultSheet) {
-    ss.deleteSheet(resultSheet);
+  // ラストネーム
+  lastNameCell = baseSheet.getRange(row, 2)
+  lastNameValue = lastNameCell.getValue();
+  lastNameLength = lastNameValue.toString().length;
+  lastNameStyle = SpreadsheetApp.newTextStyle().setFontSize(40).build()
+
+  // ファーストネーム
+  firstNameCell = baseSheet.getRange(row, 3);
+  firstNameValue = firstNameCell.getValue().toString();
+  firstNameLength = firstNameValue.toString().length;
+  firstNameStyle = SpreadsheetApp.newTextStyle().setFontSize(24).build()
+
+  // 役職なし　名前なし
+  if (positionNameLength === 0 && firstNameLength === 0) {
+
+    gapLastName()
+
+    const richText = SpreadsheetApp.newRichTextValue()
+      .setText(lastNameValue)
+      .setTextStyle(0, lastNameLength, lastNameStyle)
+      .build()
+    baseSheet.getRange(row, 4).setRichTextValue(richText)
+    return
   }
-  const newSheet = ss.insertSheet();
-  newSheet.setName("result");
+
+  // 役職なし　名前あり
+  if (positionNameLength === 0 && firstNameLength > 0) {
+
+    gapLastName()
+
+    firstNameLength = 1
+    firstNameValue = firstNameValue.slice(0, 1)
+    const richText = SpreadsheetApp.newRichTextValue()
+      .setText(lastNameValue + "　" + firstNameValue)
+      .setTextStyle(0, lastNameLength, lastNameStyle)
+      .setTextStyle(lastNameLength, lastNameLength + space + firstNameLength, firstNameStyle)
+      .build()
+    baseSheet.getRange(row, 4).setRichTextValue(richText)
+    return
+  }
+
+  // 役職あり　名前なし
+  if (positionNameLength > 0 && firstNameLength === 0) {
+
+    if (positionNameLength <= 4) {
+      gapLastName()
+    }
+
+    const richText = SpreadsheetApp.newRichTextValue()
+      .setText(positionNameValue + "　" + lastNameValue)
+      .setTextStyle(0, positionNameLength + line, positionNameStyle)
+      .setTextStyle(positionNameLength + line, positionNameLength + line + lastNameLength, lastNameStyle)
+      .build()
+    baseSheet.getRange(row, 4).setRichTextValue(richText)
+    return
+  }
+
+  // 役職あり　名前あり
+  if (positionNameLength > 0 && firstNameLength > 0) {
+    firstNameLength = 1
+    firstNameValue = firstNameValue.slice(0, 1)
+    const richText = SpreadsheetApp.newRichTextValue()
+      .setText(positionNameValue + "　" + lastNameValue + "　" + firstNameValue)
+      .setTextStyle(0, positionNameLength + line, positionNameStyle)
+      .setTextStyle(positionNameLength + line, positionNameLength + line + lastNameLength, lastNameStyle)
+      .setTextStyle(positionNameLength + line + lastNameLength, positionNameLength + line + lastNameLength + firstNameLength + line, firstNameStyle)
+      .build()
+    baseSheet.getRange(row, 4).setRichTextValue(richText)
+    return
+  }
 }
 
-function prettierWidthHeight(sheet, rows, row, column) {
-  const width = 500;
-  const height = 200;
-  sheet.setRowHeights(row, rows, height);
-  sheet.setColumnWidth(column, width);
+function gapLastName() {
+  if (lastNameLength === 2) {
+    const splitLastNameArray = lastNameValue.split("")
+    splitLastNameArray.splice(1, 0, "　")
+    lastNameValue = splitLastNameArray.join("")
+    lastNameLength += 1
+  }
 }
 
-function natori() {
-  createResultSheet();
-  const baseSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("base");
-  const resultSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("result");
-  baseSheet.getRange("A1").setValue("役職名");
-  baseSheet.getRange("B1").setValue("姓");
-  baseSheet.getRange("C1").setValue("名");
-  baseSheet.getRange("D1").setValue("結果");
-  baseSheet.getRange("A1:D1").setHorizontalAlignment("center").setBackgroundRGB(200, 200, 200);
-
-  const rows = baseSheet.getRange(baseSheet.getMaxRows(), 2).getNextDataCell(SpreadsheetApp.Direction.UP).getRow();
-  baseSheet.getRange(2, 1, rows, 4).setVerticalAlignment("middle").setHorizontalAlignment('center').setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
-
-  prettierWidthHeight(baseSheet, rows, 2, 4);
-  prettierWidthHeight(resultSheet, rows, 1, 1);
-
-  for (let i = 2; i <= rows; i++) {
-    conbineName(i);
+function changeLastNameStyle(length, fontSize) {
+  if (lastNameLength === length) {
+    lastNameStyle = SpreadsheetApp.newTextStyle().setFontSize(fontSize).build()
   }
-  const copyRange = baseSheet.getRange(2, 4, rows, 1);
-  const pasteRange = resultSheet.getRange("A1");
-  copyRange.copyTo(pasteRange);
+}
 
+function copyBaseToResult(baseSheet, resultSheet, rows) {
+  const copyRange = baseSheet.getRange(2, 4, rows, 1)
+  const pasteRange = resultSheet.getRange("A1")
+  copyRange.copyTo(pasteRange)
 }
 
 function deleteNatori() {
-  const rows = 500;
-  const width = 200;
-  const height = 50;
-  const sheet = SpreadsheetApp.getActiveSheet();
-  sheet.getRange(2, 1, rows, 4).clearContent();
-  sheet.setColumnWidths(1, 4, width);
-  sheet.setRowHeights(2, rows, height);
+  const rows = 500
+  const width = 200
+  const height = 50
+  baseSheet.getRange(2, 1, rows, 4).clearContent()
+  baseSheet.setColumnWidths(1, 4, width)
+  baseSheet.setRowHeights(2, rows, height)
 }
 
+function natoriKubishita() {
+  const { rows, resultSheet } = initSheet()
+  prettierWidthHeight(baseSheet, rows, 2, 4, 321, 167)
+  prettierWidthHeight(resultSheet, rows, 1, 1, 321, 167)
+  for (let row = 2; row <= rows; row++) {
+    conbineKubishitaName(row)
+  }
+  copyBaseToResult(baseSheet, resultSheet, rows)
+}
 
+function natoriHidarimune() {
+  const { rows, resultSheet } = initSheet()
+  prettierWidthHeight(baseSheet, rows, 2, 4, 321, 85.4)
+  prettierWidthHeight(resultSheet, rows, 1, 1, 321, 85.4)
+  for (let row = 2; row <= rows; row++) {
+    conbineHidarimuneName(row)
+  }
+  copyBaseToResult(baseSheet, resultSheet, rows)
+}
